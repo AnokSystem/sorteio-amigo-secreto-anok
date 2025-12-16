@@ -206,7 +206,7 @@ export async function deleteEvent(eventId: number): Promise<void> {
 
 // Participant functions
 export async function getParticipantsByEvent(eventId: number): Promise<Participant[]> {
-  return apiGet<Participant>('Participants', { where: `(event_id,eq,${eventId})` });
+  return apiGet<Participant>('Participants', { where: `(event_id,eq,${eventId})`, limit: '50' });
 }
 
 export async function addParticipant(eventId: number, name: string, email?: string): Promise<Participant> {
@@ -236,7 +236,8 @@ export async function drawName(eventId: number, maxRetries = 5): Promise<Partici
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     // Get undrawn participants
     const undrawn = await apiGet<Participant>('Participants', { 
-      where: `(event_id,eq,${eventId})~and(is_drawn,eq,false)` 
+      where: `(event_id,eq,${eventId})~and(is_drawn,eq,false)`,
+      limit: '50'
     });
     
     if (undrawn.length === 0) return null;
