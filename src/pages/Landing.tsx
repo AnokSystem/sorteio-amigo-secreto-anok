@@ -1,38 +1,11 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Snowflakes } from '@/components/Snowflakes';
-import { setupTables } from '@/lib/nocodb';
-import { useToast } from '@/hooks/use-toast';
-import { Gift, Users, Sparkles, Share2, Database, Loader2, CheckCircle, Heart, TreePine } from 'lucide-react';
+import { Gift, Users, Sparkles, Share2, Heart, TreePine } from 'lucide-react';
 
 export default function Landing() {
   const { t } = useLanguage();
-  const { toast } = useToast();
-  const [isSettingUp, setIsSettingUp] = useState(false);
-  const [setupDone, setSetupDone] = useState(false);
-
-  const handleSetup = async () => {
-    setIsSettingUp(true);
-    try {
-      const result = await setupTables();
-      if (result.success) {
-        setSetupDone(true);
-        toast({ title: t('success'), description: result.message });
-      } else {
-        toast({ title: t('error'), description: result.message, variant: 'destructive' });
-      }
-    } catch (error) {
-      toast({ 
-        title: t('error'), 
-        description: error instanceof Error ? error.message : 'Setup failed',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsSettingUp(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -82,34 +55,17 @@ export default function Landing() {
             {t('subtitle')}
           </p>
           
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-16 sm:mb-24">
+          {/* CTA Button */}
+          <div className="flex justify-center mb-16 sm:mb-24">
             <Link to="/auth?mode=signup" className="w-full sm:w-auto">
               <Button 
                 size="lg" 
-                className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-10 py-5 sm:py-6 rounded-2xl btn-primary-gradient hover:scale-105 transition-all duration-300"
+                className="w-full sm:w-auto text-base sm:text-lg px-8 sm:px-12 py-5 sm:py-6 rounded-2xl btn-primary-gradient hover:scale-105 transition-all duration-300"
               >
                 <Sparkles className="mr-2 h-5 w-5" />
                 {t('getStarted')}
               </Button>
             </Link>
-            
-            <Button 
-              size="lg" 
-              variant="outline"
-              onClick={handleSetup}
-              disabled={isSettingUp || setupDone}
-              className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-2xl border-2 border-secondary/30 hover:bg-secondary/5 hover:border-secondary/50 transition-all duration-300"
-            >
-              {isSettingUp ? (
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              ) : setupDone ? (
-                <CheckCircle className="mr-2 h-5 w-5 text-secondary" />
-              ) : (
-                <Database className="mr-2 h-5 w-5" />
-              )}
-              {setupDone ? t('databaseReady') : t('setupDatabase')}
-            </Button>
           </div>
 
           {/* Features */}
