@@ -74,15 +74,88 @@ async function apiDelete(tableName: string, id: number): Promise<void> {
   if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
 }
 
-// Table setup
-export async function setupTables(): Promise<void> {
+// Table creation via NocoDB Meta API
+const META_URL = 'https://anokdb.anok.com.br/api/v2/meta';
+
+interface TableInfo {
+  id: string;
+  title: string;
+}
+
+async function getExistingTables(): Promise<TableInfo[]> {
   try {
-    // Check if tables exist by trying to fetch from them
-    await apiGet('Users', { limit: '1' });
-    await apiGet('Events', { limit: '1' });
-    await apiGet('Participants', { limit: '1' });
+    const response = await fetch(`${META_URL}/bases/${BASE_ID}/tables`, { headers });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.list || [];
   } catch {
-    console.log('Tables may need to be created manually in NocoDB');
+    return [];
+  }
+}
+
+async function createTable(tableName: string, columns: Array<{ title: string; uidt: string; dtxp?: string; cdf?: string }>): Promise<void> {
+  const response = await fetch(`${META_URL}/bases/${BASE_ID}/tables`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      title: tableName,
+      columns: [
+        { title: 'Id', uidt: 'ID', pk: true, ai: true },
+        ...columns
+      ]
+    }),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to create table ${tableName}: ${error}`);
+  }
+}
+
+export async function setupTables(): Promise<{ success: boolean; message: string }> {
+  try {
+    const existingTables = await getExistingTables();
+    const tableNames = existingTables.map(t => t.title);
+    const created: string[] = [];
+
+    // Create Users table
+    if (!tableNames.includes('Users')) {
+      await createTable('Users', [
+        { title: 'email', uidt: 'Email' },
+        { title: 'password', uidt: 'SingleLineText' }
+      ]);
+      created.push('Users');
+    }
+
+    // Create Events table
+    if (!tableNames.includes('Events')) {
+      await createTable('Events', [
+        { title: 'user_id', uidt: 'Number' },
+        { title: 'name', uidt: 'SingleLineText' },
+        { title: 'created_at', uidt: 'DateTime' }
+      ]);
+      created.push('Events');
+    }
+
+    // Create Participants table
+    if (!tableNames.includes('Participants')) {
+      await createTable('Participants', [
+        { title: 'event_id', uidt: 'Number' },
+        { title: 'name', uidt: 'SingleLineText' },
+        { title: 'email', uidt: 'Email' },
+        { title: 'is_drawn', uidt: 'Checkbox', cdf: 'false' }
+      ]);
+      created.push('Participants');
+    }
+
+    if (created.length > 0) {
+      return { success: true, message: `Created tables: ${created.join(', ')}` };
+    }
+    return { success: true, message: 'All tables already exist' };
+  } catch (error) {
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Failed to setup tables' 
+    };
   }
 }
 

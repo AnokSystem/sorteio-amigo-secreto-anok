@@ -1,12 +1,39 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { Snowflakes } from '@/components/Snowflakes';
-import { Gift, Users, Sparkles, Share2 } from 'lucide-react';
+import { setupTables } from '@/lib/nocodb';
+import { useToast } from '@/hooks/use-toast';
+import { Gift, Users, Sparkles, Share2, Database, Loader2, CheckCircle } from 'lucide-react';
 
 export default function Landing() {
   const { t } = useLanguage();
+  const { toast } = useToast();
+  const [isSettingUp, setIsSettingUp] = useState(false);
+  const [setupDone, setSetupDone] = useState(false);
+
+  const handleSetup = async () => {
+    setIsSettingUp(true);
+    try {
+      const result = await setupTables();
+      if (result.success) {
+        setSetupDone(true);
+        toast({ title: 'Success', description: result.message });
+      } else {
+        toast({ title: 'Error', description: result.message, variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ 
+        title: 'Error', 
+        description: error instanceof Error ? error.message : 'Setup failed',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSettingUp(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary/10 via-background to-primary/10 relative overflow-hidden">
@@ -46,12 +73,31 @@ export default function Landing() {
           {t('subtitle')}
         </p>
         
-        <Link to="/auth?mode=signup">
-          <Button size="lg" className="text-lg px-8 py-6 holiday-shadow hover:scale-105 transition-transform">
-            <Sparkles className="mr-2 h-5 w-5" />
-            {t('getStarted')}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link to="/auth?mode=signup">
+            <Button size="lg" className="text-lg px-8 py-6 holiday-shadow hover:scale-105 transition-transform">
+              <Sparkles className="mr-2 h-5 w-5" />
+              {t('getStarted')}
+            </Button>
+          </Link>
+          
+          <Button 
+            size="lg" 
+            variant="outline"
+            onClick={handleSetup}
+            disabled={isSettingUp || setupDone}
+            className="text-lg px-8 py-6 border-secondary/50 hover:bg-secondary/10"
+          >
+            {isSettingUp ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : setupDone ? (
+              <CheckCircle className="mr-2 h-5 w-5 text-secondary" />
+            ) : (
+              <Database className="mr-2 h-5 w-5" />
+            )}
+            {setupDone ? 'Database Ready!' : 'Setup Database'}
           </Button>
-        </Link>
+        </div>
 
         {/* Features */}
         <div className="grid md:grid-cols-3 gap-8 mt-24 max-w-4xl mx-auto">
