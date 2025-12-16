@@ -383,7 +383,7 @@ export default function EventDetail() {
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                       <Badge 
-                        variant={p.is_drawn ? 'default' : 'secondary'}
+                        variant={p.is_drawn ? 'default' : 'destructive'}
                         className={`rounded-full text-xs ${p.is_drawn ? 'bg-secondary text-secondary-foreground' : ''}`}
                       >
                         {p.is_drawn ? t('drawnStatus') : t('notDrawn')}
