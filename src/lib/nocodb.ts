@@ -232,7 +232,7 @@ export async function resetDraw(eventId: number): Promise<void> {
 }
 
 // Concurrency-safe draw function
-export async function drawName(eventId: number, maxRetries = 5): Promise<Participant | null> {
+export async function drawName(eventId: number, excludeParticipantId?: number, maxRetries = 5): Promise<Participant | null> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     // Get undrawn participants
     const undrawn = await apiGet<Participant>('Participants', { 
@@ -240,11 +240,16 @@ export async function drawName(eventId: number, maxRetries = 5): Promise<Partici
       limit: '50'
     });
     
-    if (undrawn.length === 0) return null;
+    // Filter out the participant who is drawing (to prevent self-draw)
+    const available = excludeParticipantId 
+      ? undrawn.filter(p => p.Id !== excludeParticipantId)
+      : undrawn;
     
-    // Pick random
-    const randomIndex = Math.floor(Math.random() * undrawn.length);
-    const selected = undrawn[randomIndex];
+    if (available.length === 0) return null;
+    
+    // Select a random participant from available pool
+    const randomIndex = Math.floor(Math.random() * available.length);
+    const selected = available[randomIndex];
     
     if (!selected.Id) continue;
     
