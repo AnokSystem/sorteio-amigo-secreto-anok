@@ -2,16 +2,19 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Snowflakes } from '@/components/Snowflakes';
 import { getEventById, getParticipantsByEvent, drawName, Event, Participant } from '@/lib/nocodb';
-import { Gift, Loader2, Sparkles, PartyPopper, AlertCircle } from 'lucide-react';
+import { Gift, Loader2, Sparkles, PartyPopper, AlertCircle, User } from 'lucide-react';
 
 export default function Draw() {
   const { id } = useParams<{ id: string }>();
   const { t } = useLanguage();
   
   const [event, setEvent] = useState<Event | null>(null);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [selectedParticipantId, setSelectedParticipantId] = useState<string>('');
   const [drawnPerson, setDrawnPerson] = useState<Participant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -30,13 +33,14 @@ export default function Draw() {
   const loadEvent = async () => {
     if (!eventId) return;
     try {
-      const [eventData, participants] = await Promise.all([
+      const [eventData, participantsData] = await Promise.all([
         getEventById(eventId),
         getParticipantsByEvent(eventId),
       ]);
       setEvent(eventData);
+      setParticipants(participantsData);
       
-      const undrawnCount = participants.filter(p => !p.is_drawn).length;
+      const undrawnCount = participantsData.filter(p => !p.is_drawn).length;
       if (undrawnCount === 0) {
         setAllDrawn(true);
       }
@@ -48,12 +52,12 @@ export default function Draw() {
   };
 
   const handleDraw = async () => {
-    if (!eventId || hasDrawn) return;
+    if (!eventId || hasDrawn || !selectedParticipantId) return;
     setIsDrawing(true);
     setError(null);
     
     try {
-      const drawn = await drawName(eventId);
+      const drawn = await drawName(eventId, parseInt(selectedParticipantId));
       if (drawn) {
         setDrawnPerson(drawn);
         setHasDrawn(true);
@@ -66,6 +70,9 @@ export default function Draw() {
       setIsDrawing(false);
     }
   };
+
+  // Get undrawn participants for selection (excluding those who already drew)
+  const undrawnParticipants = participants.filter(p => !p.is_drawn);
 
   if (isLoading) {
     return (
@@ -150,12 +157,30 @@ export default function Draw() {
                   <Gift className="h-12 w-12 sm:h-14 sm:w-14 text-primary" />
                 </div>
                 <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">{t('secretSanta')}</h2>
-                <p className="text-muted-foreground mb-6 sm:mb-8">Clique no botão para descobrir seu amigo secreto!</p>
+                <p className="text-muted-foreground mb-4">Selecione seu nome e descubra quem você tirou!</p>
+                
+                {/* Participant Selection */}
+                <div className="mb-6">
+                  <Select value={selectedParticipantId} onValueChange={setSelectedParticipantId}>
+                    <SelectTrigger className="w-full rounded-xl bg-background border-border">
+                      <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <SelectValue placeholder="Quem é você?" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border-border">
+                      {participants.map((p) => (
+                        <SelectItem key={p.Id} value={String(p.Id)}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <Button
                   size="lg"
                   onClick={handleDraw}
-                  disabled={isDrawing}
-                  className="w-full sm:w-auto px-10 py-6 text-lg rounded-2xl btn-primary-gradient hover:scale-105 transition-all duration-300"
+                  disabled={isDrawing || !selectedParticipantId}
+                  className="w-full sm:w-auto px-10 py-6 text-lg rounded-2xl btn-primary-gradient hover:scale-105 transition-all duration-300 disabled:opacity-50"
                 >
                   {isDrawing ? (
                     <>
